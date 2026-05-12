@@ -1,0 +1,18 @@
+services:
+  ai-box:
+    build: .
+    image: ai-box
+    container_name: ai-box
+    restart: always
+    env_file:
+      - ~/ai-box/.env
+    environment:
+      - ROOT_PATH=/claude
+    volumes:
+      - ~/ai-box:/root/ai-box
+      - ~/ai-box/.claude:/root/.claude
+      - ~/ai-box/.claude.json:/root/.claude.json
+    ports:
+      - "127.0.0.1:8000:8080"
+    tty: true
+    stdin_open: true

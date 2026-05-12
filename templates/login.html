@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <title>AI Box — Login</title>
+  <meta charset="utf-8">
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+    form { display: flex; gap: 8px; }
+    input[type=password] {
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 8px 12px;
+      font-size: 16px;
+      font-family: monospace;
+      outline: none;
+    }
+    button {
+      background: #0f0;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      font-size: 16px;
+      font-family: monospace;
+      cursor: pointer;
+    }
+    .error { color: #f44; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div>AI Box</div>
+  <form method="POST" action="login">
+    <input type="password" name="token" placeholder="Access token" autofocus>
+    <button type="submit">Enter</button>
+  </form>
+  <script>
+    if (location.search.includes('error=1')) {
+      document.body.insertAdjacentHTML('beforeend', '<div class="error">Invalid token</div>');
+    }
+  </script>
+</body>
+</html>
