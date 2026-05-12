@@ -1,6 +1,6 @@
 __pycache__/
 *.py[cod]
 venv/
+.venv/
 .env
-widget/node_modules/
-widget/widget.js
+widget/
