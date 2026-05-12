@@ -2,55 +2,70 @@
 
 ## Цель
 
-Адаптировать существующий `app.py` (Flask + gevent) под новую задачу: вместо `docker exec bash` подключаться к tmux-сессии `main` внутри того же контейнера.
+Реализовать WebSocket-прокси между браузером и tmux-сессией: FastAPI открывает PTY, запускает в нём `tmux attach-session`, и прозрачно передаёт байты в обе стороны.
 
-## Ключевое отличие от текущего app.py
-
-| | Текущий MVP | AI Box |
-|---|---|---|
-| Бэкенд | Flask + gevent | FastAPI + uvicorn |
-| Что открывается | `docker exec bash` в отдельном контейнере | `tmux attach-session -t main` внутри того же контейнера |
-| Сессий | новая на каждое подключение | одна общая, все клиенты видят одно |
-| Resize | нет | да (через WebSocket message) |
-
-## app.py (новый)
+## app.py
 
 ```python
 import asyncio
-import os
-import struct
 import fcntl
-import termios
+import os
 import pty
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+import struct
+import termios
+
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+ROOT         = os.environ.get("ROOT_PATH", "")
+WEB_TOKEN    = os.environ["WEB_TOKEN"]
+TMUX_SESSION = os.environ.get("TMUX_SESSION", "main")
+PTY_ROWS     = int(os.environ.get("PTY_ROWS", "60"))
+PTY_COLS     = int(os.environ.get("PTY_COLS", "220"))
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+
+def authenticated(request: Request) -> bool:
+    return request.cookies.get("auth_token") == WEB_TOKEN
+
 
 @app.get("/")
-async def index():
-    with open("templates/index.html") as f:
-        return HTMLResponse(f.read())
+async def index(request: Request):
+    if not authenticated(request):
+        return RedirectResponse(f"{ROOT}/login")
+    return templates.TemplateResponse(request, "index.html")
+
 
 @app.websocket("/ws")
 async def terminal(ws: WebSocket):
+    token = ws.cookies.get("auth_token") or ws.query_params.get("token")
+    if token != WEB_TOKEN:
+        await ws.close(code=4401)
+        return
     await ws.accept()
 
-    # Открываем PTY и запускаем tmux attach
     master_fd, slave_fd = pty.openpty()
+    # Инициализируем PTY теми же размерами, что и tmux-сессия,
+    # чтобы attach не сжал её до дефолтных 80×24
+    fcntl.ioctl(master_fd, termios.TIOCSWINSZ,
+                struct.pack("HHHH", PTY_ROWS, PTY_COLS, 0, 0))
     proc = await asyncio.create_subprocess_exec(
-        "tmux", "attach-session", "-t", "main",
+        "tmux", "attach-session", "-t", TMUX_SESSION,
         stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
-        close_fds=True
+        close_fds=True,
     )
     os.close(slave_fd)
 
     async def read_from_pty():
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         while True:
             try:
-                data = await loop.run_in_executor(None, os.read, master_fd, 1024)
+                data = await loop.run_in_executor(None, os.read, master_fd, 4096)
                 await ws.send_bytes(data)
             except OSError:
                 break
@@ -62,7 +77,7 @@ async def terminal(ws: WebSocket):
                 if "bytes" in msg:
                     data = msg["bytes"]
                     # resize-сообщение: первый байт 0x01, затем rows(2), cols(2)
-                    if data[0] == 0x01:
+                    if len(data) == 5 and data[0] == 0x01:
                         rows = int.from_bytes(data[1:3], "big")
                         cols = int.from_bytes(data[3:5], "big")
                         fcntl.ioctl(master_fd, termios.TIOCSWINSZ,
@@ -74,9 +89,14 @@ async def terminal(ws: WebSocket):
             except WebSocketDisconnect:
                 break
 
-    await asyncio.gather(read_from_pty(), write_to_pty())
-    proc.terminate()
-    os.close(master_fd)
+    try:
+        await asyncio.gather(read_from_pty(), write_to_pty())
+    finally:
+        proc.terminate()
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
 ```
 
 ## Фронтенд (изменения в index.html)

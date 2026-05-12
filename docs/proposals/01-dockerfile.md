@@ -16,6 +16,7 @@
 | `tmux` | Удержание сессии при разрыве связи |
 | `python3`, `pip` | FastAPI backend |
 | `fastapi`, `uvicorn[standard]` | Веб-сервер и WebSocket |
+| `jinja2` | HTML-шаблоны |
 | `bash`, `curl`, `git` | Базовые утилиты внутри контейнера |
 
 ## Dockerfile
@@ -23,32 +24,27 @@
 ```dockerfile
 FROM node:22-slim
 
-# Системные зависимости
 RUN apt-get update && apt-get install -y \
-    tmux \
-    python3 \
-    python3-pip \
-    python3-venv \
-    bash \
-    curl \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    tmux python3 python3-pip python3-venv \
+    bash curl git vim \
+ && rm -rf /var/lib/apt/lists/*
 
-# Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code
 
-# Python-зависимости
 WORKDIR /app
+
 COPY requirements.txt .
 RUN python3 -m venv /app/venv \
-    && /app/venv/bin/pip install --no-cache-dir -r requirements.txt
+ && /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Исходники FastAPI
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 COPY app.py .
 COPY templates/ templates/
+COPY static/ static/
 
-# Домашняя папка — volume снаружи
-ENV HOME=/root/ai
+ENV HOME=/root/ai-box
 
 EXPOSE 8080
 
@@ -61,16 +57,19 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 fastapi
 uvicorn[standard]
 websockets
+python-multipart
+jinja2
 ```
 
 ## Сборка
 
 ```bash
-docker build -t ai-box .
+docker compose build
 ```
 
 ## Примечания
 
-- `HOME=/root/ai` — Claude Code хранит конфиг в `$HOME/.claude/`. Переопределяя HOME, мы направляем его прямо в volume.
+- `HOME=/root/ai-box` — Claude Code хранит конфиг в `$HOME/.claude/`. Переопределяя HOME, мы направляем его прямо в volume.
 - Entrypoint выделен в отдельный скрипт — см. [Stage 3](./03-entrypoint-tmux.md).
-- `npm install -g` ставит последнюю версию Claude Code при каждом `docker build`. Для pinning-версии: `@anthropic-ai/claude-code@<version>`.
+- `npm install -g` ставит последнюю версию Claude Code при каждом `docker build`.
+- `static/` содержит локальные копии xterm.js и FitAddon — CDN не используется.

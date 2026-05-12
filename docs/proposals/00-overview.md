@@ -18,10 +18,10 @@ FastAPI (внутри контейнера)
 tmux session "main"
     └── claude (Claude Code CLI)
 
-~/ai/ (volume на хосте)
+~/ai-box/ (volume на хосте)
     ├── .claude/       ← авторизация, настройки Claude Code
     ├── CLAUDE.md      ← системный промпт
-    ├── projects/      ← артефакты генерации
+    ├── projects/      ← рабочие файлы, стартовая директория Claude Code
     └── .env           ← ANTHROPIC_API_KEY, WEB_TOKEN
 ```
 
@@ -47,7 +47,7 @@ tmux спасает от network drops, но не от исчерпания ко
 ## Этапы реализации
 
 - [Stage 1 — Dockerfile](./01-dockerfile.md)
-- [Stage 2 — Volume и структура ~/ai](./02-volume.md)
+- [Stage 2 — Volume и структура ~/ai-box](./02-volume.md)
 - [Stage 3 — Entrypoint и tmux](./03-entrypoint-tmux.md)
 - [Stage 4 — FastAPI web terminal](./04-web-terminal.md)
 - [Stage 5 — Авторизация](./05-auth.md)

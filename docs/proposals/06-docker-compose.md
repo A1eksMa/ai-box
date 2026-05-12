@@ -14,9 +14,13 @@ services:
     container_name: ai-box
     restart: always
     env_file:
-      - ~/ai/.env
+      - ~/ai-box/.env
+    environment:
+      - ROOT_PATH=/claude
     volumes:
-      - ~/ai:/root/ai
+      - ~/ai-box:/root/ai-box
+      - ~/ai-box/.claude:/root/.claude
+      - ~/ai-box/.claude.json:/root/.claude.json
     ports:
       - "127.0.0.1:8080:8080"   # только localhost — снаружи через nginx
     tty: true
@@ -28,21 +32,13 @@ services:
 ## nginx (добавить в существующий конфиг)
 
 ```nginx
-server {
-    listen 443 ssl;
-    server_name ai.practiciraptor.com;   # или отдельный домен / поддомен
-
-    ssl_certificate     /etc/letsencrypt/live/.../fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/.../privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_read_timeout 86400;   # WebSocket не таймаутит за сутки
-    }
+location /claude {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_read_timeout 86400;   # WebSocket не таймаутит за сутки
 }
 ```
 
@@ -69,7 +65,7 @@ docker exec -it ai-box bash
 ```bash
 docker exec -it ai-box bash
 claude   # пройти авторизацию через браузер один раз
-# токен сохранится в /root/ai/.claude/ → на хосте в ~/ai/.claude/
+# токен сохранится в /root/ai-box/.claude/ → на хосте в ~/ai-box/.claude/
 exit
 docker compose restart ai-box   # перезапустить, теперь entrypoint запустит claude с auth
 ```

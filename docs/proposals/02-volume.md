@@ -1,13 +1,13 @@
-# Stage 2 — Volume и структура ~/ai
+# Stage 2 — Volume и структура ~/ai-box-box
 
 ## Цель
 
-Всё, что должно пережить остановку или ребилд контейнера, хранится в папке `~/ai/` на хосте, смонтированной как volume.
+Всё, что должно пережить остановку или ребилд контейнера, хранится в папке `~/ai-box-box/` на хосте, смонтированной как volume.
 
 ## Структура на хосте
 
 ```
-~/ai/
+~/ai-box-box/
 ├── .claude/           ← Claude Code: auth-токен, настройки, история сессий
 │   ├── config.json
 │   └── ...
@@ -33,25 +33,25 @@ openssl rand -hex 32
 В `docker-compose.yml`:
 ```yaml
 volumes:
-  - ~/ai:/root/ai
+  - ~/ai-box:/root/ai-box
 ```
 
-Внутри контейнера `HOME=/root/ai`, поэтому:
-- `~/.claude/` → `/root/ai/.claude/` — Claude Code находит конфиг автоматически
-- `~/CLAUDE.md` → `/root/ai/CLAUDE.md` — системный промпт подхватывается автоматически
+Внутри контейнера `HOME=/root/ai-box`, поэтому:
+- `~/.claude/` → `/root/ai-box/.claude/` — Claude Code находит конфиг автоматически
+- `~/CLAUDE.md` → `/root/ai-box/CLAUDE.md` — системный промпт подхватывается автоматически
 
 ## Первичная настройка (один раз на хосте)
 
 ```bash
-mkdir -p ~/ai/.claude ~/ai/projects
-touch ~/ai/CLAUDE.md
+mkdir -p ~/ai-box-box/.claude ~/ai-box-box/projects
+touch ~/ai-box-box/CLAUDE.md
 
-cat > ~/ai/.env <<EOF
+cat > ~/ai-box-box/.env <<EOF
 ANTHROPIC_API_KEY=sk-ant-...
 WEB_TOKEN=$(openssl rand -hex 32)
 EOF
 
-chmod 600 ~/ai/.env
+chmod 600 ~/ai-box-box/.env
 ```
 
 ## Авторизация Claude Code
@@ -62,11 +62,11 @@ chmod 600 ~/ai/.env
 `ANTHROPIC_API_KEY` передаётся через `.env`. Claude Code подхватывает его из переменной окружения. Повторная авторизация не нужна никогда.
 
 **Вариант B — OAuth (claude.ai):**
-После первого запуска контейнера — войти внутрь и выполнить `claude` вручную. Пройти авторизацию через браузер. Токен сохранится в `/root/ai/.claude/` и переживёт любой ребилд.
+После первого запуска контейнера — войти внутрь и выполнить `claude` вручную. Пройти авторизацию через браузер. Токен сохранится в `/root/ai-box/.claude/` и переживёт любой ребилд.
 
 Рекомендуется Вариант A — не требует ручных действий при ребилде.
 
 ## Примечания
 
-- `~/ai/.env` не должен попасть в git. Добавить в `.gitignore`: `ai/.env`, `*.env`
-- `~/ai/CLAUDE.md` можно коммитить — это системный промпт, не секрет
+- `~/ai-box-box/.env` не должен попасть в git. Добавить в `.gitignore`: `ai/.env`, `*.env`
+- `~/ai-box-box/CLAUDE.md` можно коммитить — это системный промпт, не секрет

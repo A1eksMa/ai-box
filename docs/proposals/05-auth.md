@@ -31,7 +31,7 @@ async def login(request: Request):
     form = await request.form()
     if form.get("token") == WEB_TOKEN:
         response = RedirectResponse("/", status_code=302)
-        response.set_cookie("auth_token", WEB_TOKEN, httponly=True, samesite="strict")
+        response.set_cookie("auth_token", WEB_TOKEN, httponly=True, samesite="strict", secure=True)
         return response
     return RedirectResponse("/login?error=1", status_code=302)
 
@@ -75,7 +75,7 @@ async def terminal(ws: WebSocket):
 - Токен генерируется через `openssl rand -hex 32` — достаточная энтропия
 - `httponly=True` — токен недоступен из JavaScript
 - HTTPS обязателен (nginx с SSL, уже есть на инстансе) — без него cookie передаётся в открытом виде
-- Добавить `secure=True` к `set_cookie` при работе через HTTPS
+- `secure=True` в `set_cookie` — cookie передаётся только по HTTPS
 
 ## Что НЕ реализуется намеренно
 
