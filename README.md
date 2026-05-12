@@ -1,6 +1,6 @@
 # AI Box — веб-терминал с Claude Code
 
-Браузерный терминал, открывающий доступ к сессии [Claude Code](https://claude.ai/code) прямо из браузера. Работает на [practiciraptor.com/claude](https://practiciraptor.com/claude).
+Браузерный терминал, открывающий доступ к сессии [Claude Code](https://claude.ai/code) из браузера.
 
 ## Архитектура
 
