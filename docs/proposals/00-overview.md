@@ -52,3 +52,4 @@ tmux спасает от network drops, но не от исчерпания ко
 - [Stage 4 — FastAPI web terminal](./04-web-terminal.md)
 - [Stage 5 — Авторизация](./05-auth.md)
 - [Stage 6 — docker-compose и деплой](./06-docker-compose.md)
+- [Stage 7 — Резервный вход при блокировке сети (mirror + relay)](./07-mirror-relay.md)
